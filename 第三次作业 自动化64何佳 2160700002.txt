@@ -1,0 +1,177 @@
+《zft01.m》
+clc,clear
+str='woman2.bmp';
+[Img,Map]=imread(str);%img为索引矩阵，Map为调色板
+Map(end:255,:)=0;
+zftY=zeros(1,256);
+ImgGray=ind2gray(Img,Map);%把索引图像转为灰度图像
+[m,n]=size(ImgGray);
+for i=0:255
+    zftY(i+1)=length(find(ImgGray==i))/(m*n);
+end
+figure(1)
+bar(0:255,zftY);
+axis([0 256 0 max(zftY)*1.1]);
+title([str '手编归一化直方图']);
+xlabel('灰度值');
+ylabel('像素概率密度');
+figure(2)
+imhist(ImgGray);
+title([str '自动直方图']);
+
+
+《zft02.m》
+clc,clear
+str='woman2.bmp';
+[Img,Map]=imread(str);%img为索引矩阵，Map为调色板
+Map(end:255,:)=0;%  ????
+
+subplot(2,2,1);
+imshow(Img,Map);
+title([str '原图像']);
+
+subplot(2,2,3);
+ImgGray=ind2gray(Img,Map);%把索引图像转为灰度图像
+% [m,n]=size(ImgGray);
+% zftOrgY=zeros(1,256);
+% for i=0:255
+%     zftOrgY(i+1)=length(find(ImgGray==i))/(m*n);
+% end
+% bar(0:255,zftOrgY);
+% axis([0 256 0 max(zftOrgY)*1.1]);
+imhist(ImgGray);
+title([str '原图像直方图']);
+xlabel('灰度值');
+ylabel('像素概率密度');
+
+subplot(2,2,2);
+J=histeq(Img);%要改吗
+imshow(J,Map);
+title([str '直方图均衡后图像']);
+
+subplot(2,2,4);
+JGray=ind2gray(J,Map);%把索引图像转为灰度图像
+% [m,n]=size(JGray);
+% zftNewY=zeros(1,256);
+% for i=0:255
+%     zftNewY(i+1)=length(find(JGray==i))/(m*n);
+% end
+% bar(0:255,zftNewY);
+% axis([0 256 0 max(zftNewY)*1.1]);
+imhist(JGray);
+title([str '直方图均衡后直方图']);
+xlabel('灰度值');
+ylabel('像素概率密度');
+
+《zft03.m》
+clc,clear
+str='woman.bmp';%要匹配的图像名称
+str2='woman2.bmp';%要处理的图像名称
+[Img,Map]=imread(str);%img为索引矩阵，Map为调色板
+ImgGray=ind2gray(Img,Map);%把索引图像转为灰度图像
+[Img2,Map2]=imread(str2);%img为索引矩阵，Map为调色板
+%Map2(end:255,:)=0;%  
+ImgGray2=ind2gray(Img2,Map2);%把索引图像转为灰度图像
+%J = histeq(I, hist);  I为输入图像，hist为匹配直方图，可以是用不同方式表示的灰度图像的直方图，例如doule/single类型（横坐标范围0~1），uint8类型（横坐标范围0~255），uint16和int16
+J=histeq(Img2,imhist(Img,256));
+
+figure(1)
+subplot(2,3,1);
+imshow(Img,Map);
+title([str '(模板)']);
+subplot(2,3,2);
+imshow(Img2,Map2);
+title([str2 '(被处理图像)']);
+subplot(2,3,3);
+imshow(J,Map);
+title([str2 '匹配增强后']);
+subplot(2,3,4);
+imhist(ImgGray);
+title([str '原图直方图']);
+
+subplot(2,3,5);
+imhist(ImgGray2);
+title([str2 '原图直方图']);
+
+subplot(2,3,6);
+imhist(ind2gray(J,Map));%还是imhist(Img,256);
+title([str2 '匹配后直方图']);
+
+
+《zft04.m》
+% Img:灰度图像
+% k0,k1：可调参数
+% Ibw：提取得到数字区域
+Img=imread('elain.bmp');
+k0=0.3;
+k1=0.1;
+E=4;
+masksize = 3; % 邻域范围，奇数
+exsize = floor(masksize/2); % 原图片需要填充的区域
+Iex = padarray(Img, [exsize exsize], 'replicate', 'both'); % 图片填充
+Is = zeros(size(Img)); % 局部标准差
+for i = 1:size(Img, 1)
+for j = 1:size(Img, 2)
+subdomain = Iex(i:i+2*exsize, j:j+2*exsize);
+localmean = sum(subdomain(:))/masksize^2;
+Is(i, j) = sqrt(sum((subdomain(:)-localmean).^2))/masksize;
+end
+end
+% 确定不同区域的放大系数
+meanIm = mean(Img(:));
+minIm = min(Img(:));
+meanIs = mean(Is(:));
+maxIs = max(Is(:));
+Im1 = Img<(minIm+k0*(meanIm-minIm)); % 均值阈值提取
+Is1 = Is>(meanIs + k1*(maxIs-meanIs)); % 标准差阈值提取
+s = strel('disk',8); % 8需要根据实际图片大小来调
+Is1 = imclose(Is1, s); % 标准差阈值提取闭运算
+Ibw = Im1 & Is1; % 局部增强
+figure(1)
+imshow(Ibw);title('增强图像的放大图像');
+Ibw2=Ibw.*(E-1)+1;
+for i = 1:size(Img, 1)
+for j = 1:size(Img, 2)
+P(i,j)=Ibw2(i,j).*Img(i,j);
+end
+end
+figure(2)
+imshow(P);title('局部直方图增强后');
+figure(3)
+imshow(Img);title('局部增强原始图像');
+
+《zft05.m》
+clc,clear
+str='woman.bmp';
+Img=imread(str);
+subplot(2,2,1);
+imshow(Img);
+%输出直方图
+subplot(2,2,2);
+imhist(Img);
+%人工选定阈值进行分割，选择阈值为120
+[width,height]=size(Img);
+T1=120;%人工选定的阈值
+BW1=imbinarize(Img,T1);
+for i=1:width
+    for j=1:height
+        if(Img(i,j)<T1)
+            BW1(i,j)=0;
+        else 
+            BW1(i,j)=1;
+        end
+    end
+end
+subplot(2,2,3);
+imshow(BW1);
+title('人工阈值进行分割');
+%自动选择阈值
+T2=graythresh(Img);
+BW2=imbinarize(Img,T2);%Otus阈值进行分割
+subplot(2,2,4);
+imshow(BW2);
+title('Otus阈值进行分割');
+
+
+
+
